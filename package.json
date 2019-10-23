@@ -24,7 +24,5 @@
     "wirecloud-config-parser": "^0.2.2"
   },
   "private": true,
-  "dependencies": {
-    "jasmine": "^3.5.0"
-  }
+  "dependencies": {}
 }

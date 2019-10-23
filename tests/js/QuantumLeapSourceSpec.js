@@ -6,7 +6,7 @@
  *
  */
 
-/* globals MashupPlatform, MockMP, beforeAll, beforeEach, QuantumLeapSource moment*/
+/* globals MashupPlatform, MockMP, beforeAll, beforeEach, QuantumLeapSource moment */
 
 (function () {
 

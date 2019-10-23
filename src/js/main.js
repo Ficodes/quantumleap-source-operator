@@ -192,10 +192,6 @@
             ngsi_proxy_url: this.ngsi_proxy
         });
 
-        // let types = undefined;
-
-        // let filter = undefined;
-
         let notification = {
             attrsFormat: "normalized",
             callback: (notification) => {
