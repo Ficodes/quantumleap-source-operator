@@ -36,7 +36,7 @@ module.exports = function (grunt) {
             main: {
                 files: [
                     {expand: true, cwd: 'src/js', src: '*', dest: 'build/src/js'},
-                    {expand: true, cwd: 'node_modules/moment/min', src: 'moment-with-locales.js', dest: 'build/lib/js'}
+                    {expand: true, cwd: 'node_modules/moment/min', src: 'moment-with-locales.min.js', dest: 'build/lib/lib/js'}
                 ]
             }
         },
