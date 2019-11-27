@@ -173,7 +173,9 @@
                     'use_owner_credentials': false,
                     'use_user_fiware_token': false,
                     'include_metadata': true,
-                    'update_real_time': true
+                    'update_real_time': true,
+                    'aggr_method': "",
+                    'aggr_period': ""
                 },
                 inputs: ['entity_id'],
                 outputs: ['historyOutput']

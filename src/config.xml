@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<operator xmlns="http://wirecloud.conwet.fi.upm.es/ns/macdescription/1" vendor="FICODES" name="quantumleap-source" version="0.1.5">
+<operator xmlns="http://wirecloud.conwet.fi.upm.es/ns/macdescription/1" vendor="FICODES" name="quantumleap-source" version="0.1.6">
     <details>
         <title>QuantumLeap source</title>
         <homepage>https://github.com/Ficodes/quantumleap-source-operator</homepage>
@@ -90,6 +90,20 @@
             label="real time updates"
             description="Send updated historical info when update is notified"
             default="true" />
+        <preference
+            name="aggr_method"
+            type="text"
+            label="Aggregation method"
+            description="Aggregation method: count/sum/avg/min/max"
+            default="" />
+        <preference
+            name="aggr_period"
+            type="text"
+            label="Aggregation period"
+            description="Aggregation period: year/month/day/hour/minute/second"
+            default="" />
+
+
     </preferences>
     <wiring>
         <inputendpoint

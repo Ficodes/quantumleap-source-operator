@@ -97,6 +97,7 @@
         let historical_server = MashupPlatform.prefs.get('historical_server');
         let fiwareService = MashupPlatform.prefs.get('ngsi_tenant');
         let ngsi_service_path = MashupPlatform.prefs.get('ngsi_service_path');
+
         let reqHeaders = {'FIWARE-ServicePath': ngsi_service_path};
         if (fiwareService !== "") {
             // If empty FIWARE-Service, the header should not be sent to QuantumLeap
@@ -126,7 +127,7 @@
             MashupPlatform.operator.log("Error getting Historical Data (" + e.status + "): " + JSON.stringify(e.response), MashupPlatform.log.ERROR);
         };
 
-        MashupPlatform.http.makeRequest(url, {
+        let options = {
             method: "GET",
             responseType: "json",
             parameters: {
@@ -137,7 +138,17 @@
             requestHeaders: reqHeaders,
             onSuccess: successCB,
             onFailure: failureCB
-        });
+        };
+
+        let aggrMethod = MashupPlatform.prefs.get('aggr_method');
+        let aggrPeriod = MashupPlatform.prefs.get('aggr_period');
+
+        if (aggrMethod !== "" && aggrPeriod !== "") {
+            options.parameters.aggrMethod = aggrMethod;
+            options.parameters.aggrPeriod = aggrPeriod;
+        }
+
+        MashupPlatform.http.makeRequest(url, options);
     };
 
     const doInitialSubscription = function doInitialSubscription() {
