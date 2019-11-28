@@ -175,7 +175,9 @@
                     'include_metadata': true,
                     'update_real_time': true,
                     'aggr_method': "",
-                    'aggr_period': ""
+                    'aggr_period': "",
+                    'from': "",
+                    'to': ""
                 },
                 inputs: ['entity_id'],
                 outputs: ['historyOutput']

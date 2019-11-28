@@ -104,13 +104,9 @@
             reqHeaders['FIWARE-Service'] =  fiwareService;
         }
 
-        let numberOfDays4History = MashupPlatform.prefs.get('historical_length');
 
         let attrList = MashupPlatform.prefs.get('history_attributes');
 
-        let historicLenght = numberOfDays4History * 60 * 60 * 1000; // 7 days default
-        let toDate = moment().utc().valueOf();
-        let fromDate = moment(toDate - historicLenght).valueOf();
         let url = new URL("/v2/entities/" + entityID, historical_server);
 
         // let start = moment();
@@ -131,9 +127,7 @@
             method: "GET",
             responseType: "json",
             parameters: {
-                attrs: attrList,
-                fromDate: fromDate,
-                toDate: toDate
+                attrs: attrList
             },
             requestHeaders: reqHeaders,
             onSuccess: successCB,
@@ -146,6 +140,25 @@
         if (aggrMethod !== "" && aggrPeriod !== "") {
             options.parameters.aggrMethod = aggrMethod;
             options.parameters.aggrPeriod = aggrPeriod;
+        }
+
+        let from = MashupPlatform.prefs.get('from');
+        let to = MashupPlatform.prefs.get('to');
+        let numberOfHours4History = MashupPlatform.prefs.get('historical_length');
+        if (from !== "" || to !== "" || numberOfHours4History !== "") {
+
+            if (from === "" && to === "") {
+                let historicLenght = parseInt(numberOfHours4History) * 60 * 60 * 1000;
+                options.parameters.toDate = moment().utc().valueOf();
+                options.parameters.fromDate = moment(options.parameters.toDate - historicLenght).valueOf();
+            } else {
+                if (from !== null && moment(from).isValid()) {
+                    options.parameters.fromDate = moment(from).valueOf();
+                }
+                if (to !== null && moment(to).isValid()) {
+                    options.parameters.toDate = moment(to).valueOf();
+                }
+            }
         }
 
         MashupPlatform.http.makeRequest(url, options);
@@ -312,6 +325,35 @@
         }
     };
 
+    var fillWithNulls = function fillWithNulls(originalValues, gap) {
+
+        if (!Array.isArray(originalValues) || originalValues.length < 4) {
+            return originalValues;
+        }
+
+        // Estimate gap
+        let firstGap = originalValues.index[1] - originalValues.index[0];
+        while (!gapChecked)
+
+        var result = [];
+        var lastDate;
+        var lastValue;
+
+        originalValues.forEach(d => {
+            if (lastDate != null && lastDate + gap < d.value[0] && lastValue != null) {
+                result.push({
+                    name: 'No Signal Detected',
+                    value: [lastDate + gap, null]
+                });
+            }
+            lastDate = d.value[0];
+            lastValue = d.value[1];
+            result.push(d);
+        });
+
+        return result;
+    };
+
     const updateHistory = function updateHistory(entity) {
 
         if (lastHistorical == null) {
@@ -374,6 +416,7 @@
                     hist.metadata = entity[hist.attrName].metadata;
                 }
             });
+            lastHistorical = fillWithNulls(lastHistorical);
 
             MashupPlatform.operator.log("Historical information updated: " + entity.id +
                 " last value date: " + moment(lastDate).format() + "; new dateModified: " +
