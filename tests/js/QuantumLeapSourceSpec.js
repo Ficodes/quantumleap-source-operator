@@ -19,6 +19,7 @@
         var realMoment = moment;
 
         var entity_idMock = 'exampleEntityId:123';
+        var entity_typeMock = 'exampleType';
         var todayMockValue = "2019-10-04T22:02:00.00Z";
         var historical_length = 24;
 
@@ -36,6 +37,7 @@
             responseType: "json",
             parameters: {
                 attrs: attrListMock,
+                type: entity_typeMock,
                 fromDate: expected_historicalFrom,
                 toDate: expected_historicalTo
             },
@@ -124,6 +126,7 @@
                     metadata: {}
                 },
                 id: entity_idMock,
+                type: entity_typeMock,
                 attr1: {
                     type: "Number",
                     value: 0.449375,
@@ -145,6 +148,7 @@
                     metadata: {}
                 },
                 id: entity_idMock,
+                type: entity_typeMock,
                 attr1: {
                     type: "Number",
                     value: attr1Val,
@@ -165,6 +169,7 @@
                     'historical_server': historical_serverMock,
                     'history_attributes': attrListMock,
                     'entity_id': entity_idMock,
+                    'entity_type': entity_typeMock,
                     'historical_length': historical_length,
                     'ngsi_proxy': 'https://ngsiproxy.example.com',
                     'ngsi_server': ngsi_serverMock,
@@ -187,9 +192,7 @@
         function resetMakeRequestMock() {
             window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.callFake(function (url, request) {
                 request.onSuccess({
-                    response: {
-                        data: JSON.parse(JSON.stringify(INITIAL_SERIE))
-                    },
+                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
                     status: 200
                 });
             });
@@ -300,7 +303,7 @@
             }, 200);
         });
 
-        it("should ignore wiring change events if already connected", () => {
+        it("ignore wiring change events if already connected", () => {
             MashupPlatform.operator.outputs.historyOutput.connect(true);
             operator.init();
 

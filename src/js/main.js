@@ -16,7 +16,7 @@
     /* ******************************** PUBLIC *************************************/
     /* *****************************************************************************/
 
-    let optionalID;
+    let optionalID, optionalType;
 
     const QuantumLeapSource = function QuantumLeapSource() {
         this.connection = null; // The connection to NGSI.
@@ -29,6 +29,7 @@
 
     QuantumLeapSource.prototype.init = function init() {
         optionalID = null;
+        optionalType = null;
         // Set preference callbacks
         MashupPlatform.prefs.registerCallback(handlerPreferences.bind(this));
 
@@ -75,23 +76,40 @@
     /* *****************************************************************************/
 
     const setNewEntityID = function setNewEntityID(newId) {
-        optionalID = newId;
+        if (typeof newId === "string") {
+            optionalID = newId;
+            optionalType = null;
+        } else if (newId.id != null) {
+            optionalID = newId.id;
+            if (newId.type != null) {
+                optionalType = newId.type;
+            } else {
+                optionalType = null;
+            }
+        }
         handlerPreferences.call(this);
     };
 
-    let lastHistorical;
+    let lastHistorical, lostUpload, historicalError, lostEntityUpdate;
 
     const getInitialHistoricalInfo = function getInitialHistoricalInfo() {
 
-        let entityID;
+        let entityID, theType;
+        lostUpload = false;
+        historicalError = null;
         if (optionalID != null) {
             entityID = optionalID;
         } else {
             entityID = MashupPlatform.prefs.get('entity_id');
         }
-        if (entityID == "") {
+        if (entityID === "") {
             // EntityID is empty by the moment
             return;
+        }
+        if (optionalType != null) {
+            theType = optionalType;
+        } else {
+            theType = MashupPlatform.prefs.get('entity_type');
         }
 
         let historical_server = MashupPlatform.prefs.get('historical_server');
@@ -111,17 +129,23 @@
 
         // let start = moment();
         let successCB = function successCB(hSeries) {
-            lastHistorical = hSeries.response.data;
-            if (!MashupPlatform.prefs.get('update_real_time')) {
-                MashupPlatform.wiring.pushEvent("historyOutput", lastHistorical);
+            historicalError = null;
+            lastHistorical = hSeries.response;
+            if (!MashupPlatform.prefs.get('update_real_time') || lostUpload) {
+                lostUpload = false;
+                if (lostEntityUpdate != null) {
+                    handlerReceiveEntities.call(this, lostEntityUpdate, true);
+                } else {
+                    MashupPlatform.wiring.pushEvent("historyOutput", lastHistorical);
+                }
             }
-            // let end = moment();
-            // MashupPlatform.operator.log("Getting History from QuantumLeap: " + end.diff(start, 'seconds') + " seconds", MashupPlatform.log.INFO);
-        };
+        }.bind(this);
 
         let failureCB = function failureCB(e) {
+            historicalError = e;
             MashupPlatform.operator.log("Error getting Historical Data (" + e.status + "): " + JSON.stringify(e.response), MashupPlatform.log.ERROR);
-        };
+            MashupPlatform.wiring.pushEvent("historyOutput", e.response);
+        }.bind(this);
 
         let options = {
             method: "GET",
@@ -140,6 +164,10 @@
         if (aggrMethod !== "" && aggrPeriod !== "") {
             options.parameters.aggrMethod = aggrMethod;
             options.parameters.aggrPeriod = aggrPeriod;
+        }
+
+        if (theType != null && theType !== "") {
+            options.parameters.type = theType;
         }
 
         let from = MashupPlatform.prefs.get('from');
@@ -287,16 +315,30 @@
 
     let interval = null;
     let pendingUpdates = [];
-    const handlerReceiveEntities = function handlerReceiveEntities(elements) {
+    const handlerReceiveEntities = function handlerReceiveEntities(elements, forcePush) {
         // MashupPlatform.operator.log("New updated received: " + moment().format('LTS'), MashupPlatform.log.INFO);
+        lostEntityUpdate = elements;
         if (elements != null && Array.isArray(elements) && elements.length > 0) {
             pendingUpdates.push(elements[0]);
             if (lastHistorical == null) {
+                // waiting for QL response?? or error getting initial historical info?
+                if (historicalError != null) {
+                    // Error getting initial historical info.
+                    if (optionalType == null) {
+                        // Trying to get historical using type
+                        optionalType = elements[0].type;
+                        getInitialHistoricalInfo.call(this);
+                    }
+                    // return;
+                }
                 // waiting for QL response
+                lostUpload = true;
                 return;
             }
+            optionalType = elements[0].type;
             if (interval == null) {
                 interval = setTimeout(function () {
+                    lostEntityUpdate = null;
                     // let start = moment();
                     try {
                         let need2PushEvent = false;
@@ -304,6 +346,9 @@
                             // UpdateHistory if necessary
                             need2PushEvent = updateHistory.call(this, entity) || need2PushEvent;
                         });
+                        if (forcePush === true) {
+                            need2PushEvent = true;
+                        }
                         // Clear pendingUpdates
                         pendingUpdates = [];
                         if (need2PushEvent) {
@@ -320,38 +365,10 @@
                     }
                 }.bind(this),200);
             }
+
         } else {
             MashupPlatform.operator.log("Error updating historical information. Received entities cannot be empty.");
         }
-    };
-
-    var fillWithNulls = function fillWithNulls(originalValues, gap) {
-
-        if (!Array.isArray(originalValues) || originalValues.length < 4) {
-            return originalValues;
-        }
-
-        // Estimate gap
-        let firstGap = originalValues.index[1] - originalValues.index[0];
-        while (!gapChecked)
-
-        var result = [];
-        var lastDate;
-        var lastValue;
-
-        originalValues.forEach(d => {
-            if (lastDate != null && lastDate + gap < d.value[0] && lastValue != null) {
-                result.push({
-                    name: 'No Signal Detected',
-                    value: [lastDate + gap, null]
-                });
-            }
-            lastDate = d.value[0];
-            lastValue = d.value[1];
-            result.push(d);
-        });
-
-        return result;
     };
 
     const updateHistory = function updateHistory(entity) {
@@ -416,7 +433,6 @@
                     hist.metadata = entity[hist.attrName].metadata;
                 }
             });
-            lastHistorical = fillWithNulls(lastHistorical);
 
             MashupPlatform.operator.log("Historical information updated: " + entity.id +
                 " last value date: " + moment(lastDate).format() + "; new dateModified: " +
