@@ -60,20 +60,23 @@
         // Set wiring status callback
         MashupPlatform.wiring.registerStatusCallback(() => {
             if (this.connection == null) {
-                getInitialHistoricalInfo.call(this);
-                doInitialSubscription.call(this);
+                requestData.call(this);
             }
         });
 
-        // Create NGSI conection
-        getInitialHistoricalInfo.call(this);
-        doInitialSubscription.call(this);
+        // Create connections
+        requestData.call(this);
 
     };
 
     /* *****************************************************************************/
     /* ******************************** PRIVATE ************************************/
     /* *****************************************************************************/
+
+    const requestData = function requestData() {
+        getInitialHistoricalInfo.call(this);
+        doInitialSubscription.call(this);
+    };
 
     const setNewEntityID = function setNewEntityID(newId) {
         if (typeof newId === "string") {
@@ -127,7 +130,6 @@
 
         let url = new URL("/v2/entities/" + entityID, historical_server);
 
-        // let start = moment();
         let successCB = function successCB(hSeries) {
             historicalError = null;
             lastHistorical = hSeries.response;
@@ -194,9 +196,6 @@
 
     const doInitialSubscription = function doInitialSubscription() {
 
-        if (!MashupPlatform.prefs.get('update_real_time')) {
-            return;
-        }
         let id_pattern;
         if (optionalID != null) {
             id_pattern = optionalID;
@@ -397,7 +396,7 @@
         const toDate = moment().utc().valueOf();
         const fromDate = moment(toDate - historicLenght).valueOf();
 
-        if (moment(dateModified).valueOf() > lastDate) {
+        if (MashupPlatform.prefs.get('update_real_time') && moment(dateModified).valueOf() > lastDate) {
 
             // remove out of range values
             if (fromDate > firstDate) {
@@ -476,20 +475,17 @@
             this.connection.v2.deleteSubscription(this.subscriptionId).then(
                 () => {
                     MashupPlatform.operator.log("Old subscription has been cancelled sucessfully", MashupPlatform.log.INFO);
-                    getInitialHistoricalInfo.call(this);
-                    doInitialSubscription.call(this);
+                    requestData.call(this);
                 },
                 () => {
                     MashupPlatform.operator.log("Error cancelling old subscription", MashupPlatform.log.WARN);
-                    getInitialHistoricalInfo.call(this);
-                    doInitialSubscription.call(this);
+                    requestData.call(this);
                 }
             );
             // Remove subscriptionId without waiting to know if the operator finished successfully
             this.subscriptionId = null;
         } else {
-            getInitialHistoricalInfo.call(this);
-            doInitialSubscription.call(this);
+            requestData.call(this);
         }
     };
 
