@@ -216,7 +216,7 @@
 
         return MashupPlatform.http.makeRequest(url, options).then((response) => {
             if (response.status !== 200) {
-                return Promise.reject();
+                return Promise.reject(response);
             }
             index = index.concat(response.response.index);
             data.forEach((attribute, i) => {
