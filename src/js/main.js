@@ -196,8 +196,6 @@
             method: "GET",
             responseType: "json",
             parameters: {
-                fromDate: fromDate,
-                toDate: toDate,
                 offset: index.length
             },
             requestHeaders: {
@@ -205,6 +203,12 @@
                 'FIWARE-ServicePath': fiwareServicePath
             }
         };
+        if (fromDate != "") {
+            options.parameters.fromDate = fromDate;
+        }
+        if (toDate != "") {
+            options.parameters.toDate = toDate;
+        }
 
         if (attrList.length) {
             options.parameters.attrs = attrList;
