@@ -131,6 +131,8 @@
         let attrList = MashupPlatform.prefs.get('history_attributes').trim();
         if (attrList !== "") {
             attrList = attrList.split(new RegExp(',\\s*'));
+        } else {
+            attrList = [];
         }
 
         let url = new URL("/v2/entities/" + entityID, historical_server);
@@ -160,7 +162,7 @@
         let from = MashupPlatform.prefs.get('from');
         let to = MashupPlatform.prefs.get('to');
         let numberOfHours4History = MashupPlatform.prefs.get('historical_length');
-        if (from !== "" || to !== "" || numberOfHours4History !== "") {
+        if (numberOfHours4History > 0 || from !== "" || to !== "") {
 
             if (from === "" && to === "") {
                 let historicLenght = parseInt(numberOfHours4History) * 60 * 60 * 1000;
@@ -194,7 +196,6 @@
             method: "GET",
             responseType: "json",
             parameters: {
-                attrs: attrList,
                 fromDate: fromDate,
                 toDate: toDate,
                 offset: index.length
@@ -205,7 +206,11 @@
             }
         };
 
-        if (aggrMethod !== "" && aggrPeriod !== "") {
+        if (attrList.length) {
+            options.parameters.attrs = attrList;
+        }
+
+        if (attrList.length && aggrMethod !== "" && aggrPeriod !== "") {
             options.parameters.aggrMethod = aggrMethod;
             options.parameters.aggrPeriod = aggrPeriod;
         }
