@@ -1,5 +1,10 @@
 # QuantumLeap source operator
 
+[![](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/visualization.svg)](https://www.fiware.org/developers/catalogue/)
+![](https://img.shields.io/github/license/Ficodes/quantumleap-source-operator.svg)<br/>
+[![Build Status](https://travis-ci.org/Ficodes/quantumleap-source-operator.svg?branch=develop)](https://travis-ci.org/Ficodes/quantumleap-source-operator)
+[![Coverage Status](https://coveralls.io/repos/github/Ficodes/quantumleap-source-operator/badge.svg?branch=develop)](https://coveralls.io/github/Ficodes/quantumleap-source-operator?branch=develop)
+
 The QuantumLeap source operator is a [WireCloud operator](http://wirecloud.readthedocs.org/en/latest/) usable for adding
 historical information from QuantumLeap and Context Broker sources to your dashboards in a simple way. 
 
