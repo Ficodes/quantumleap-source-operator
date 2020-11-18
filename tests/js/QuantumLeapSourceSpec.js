@@ -24,14 +24,14 @@
         var historical_length = 24;
 
         let historicLenght = historical_length * 60 * 60 * 1000;
-        var expected_historicalTo = moment(todayMockValue).utc().valueOf();
-        var expected_historicalFrom = moment(expected_historicalTo - historicLenght).valueOf();
-        var attrListMockString = 'attr1, attr2';
-        var attrListMock = ['attr1', 'attr2'];
-        var historical_serverMock = 'https://quantumpleap.example.com';
-        var ngsi_serverMock = 'https://orion.example.com';
-        var ngsi_tenant = 'Tenant';
-        var ngsi_service_pathMock = '/Spain/Madrid';
+        const expected_historicalTo = realMoment(todayMockValue).utc().valueOf();
+        const expected_historicalFrom = realMoment(todayMockValue).utc().subtract(historical_length, 'hour').valueOf();
+        const attrListMockString = 'attr1, attr2';
+        const attrListMock = ['attr1', 'attr2'];
+        const historical_serverMock = 'https://quantumpleap.example.com';
+        const ngsi_serverMock = 'https://orion.example.com';
+        const ngsi_tenant = 'Tenant';
+        const ngsi_service_pathMock = '/Spain/Madrid';
 
         let expectedQLRequest = {
             method: "GET",
