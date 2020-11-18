@@ -1,7 +1,7 @@
 /*
  * quantumleap-source
  *
- * Copyright (c) 2019 Future Internet Consulting and Development Solutions S.L.
+ * Copyright (c) 2020 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
  *
  */
@@ -165,9 +165,9 @@
         if (numberOfHours4History > 0 || from !== "" || to !== "") {
 
             if (from === "" && to === "") {
-                let historicLenght = parseInt(numberOfHours4History) * 60 * 60 * 1000;
-                to = moment().utc().valueOf();
-                from = moment(to - historicLenght).valueOf();
+                let toDate = moment().utc();
+                to = toDate.valueOf();
+                from = toDate.subtract(numberOfHours4History, 'hours').valueOf();
             } else {
                 if (from !== null && moment(from).isValid()) {
                     from = moment(from).valueOf();
