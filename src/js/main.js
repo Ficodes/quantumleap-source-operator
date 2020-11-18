@@ -1,5 +1,5 @@
 /*
- * real-time-map-filter
+ * quantumleap-source
  *
  * Copyright (c) 2019 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
@@ -17,6 +17,8 @@
     /* *****************************************************************************/
 
     let optionalID, optionalType;
+
+    let lastHistorical, lostUpload, historicalError, lostEntityUpdate;
 
     const QuantumLeapSource = function QuantumLeapSource() {
         this.connection = null; // The connection to NGSI.
@@ -93,11 +95,9 @@
         handlerPreferences.call(this);
     };
 
-    let lastHistorical, lostUpload, historicalError, lostEntityUpdate;
-
     const getInitialHistoricalInfo = function getInitialHistoricalInfo() {
 
-        let entityID, theType;
+        let entityID;
         lostUpload = false;
         historicalError = null;
         if (optionalID != null) {
@@ -109,6 +109,8 @@
             // EntityID is empty by the moment
             return;
         }
+
+        let theType;
         if (optionalType != null) {
             theType = optionalType;
         } else {
@@ -117,16 +119,21 @@
 
         let historical_server = MashupPlatform.prefs.get('historical_server');
         let fiwareService = MashupPlatform.prefs.get('ngsi_tenant');
-        let ngsi_service_path = MashupPlatform.prefs.get('ngsi_service_path');
+        let fiwareServicePath = MashupPlatform.prefs.get('ngsi_service_path');
 
-        let reqHeaders = {'FIWARE-ServicePath': ngsi_service_path};
+        let reqHeaders = {'FIWARE-ServicePath': fiwareServicePath};
         if (fiwareService !== "") {
             // If empty FIWARE-Service, the header should not be sent to QuantumLeap
             reqHeaders['FIWARE-Service'] =  fiwareService;
         }
 
 
-        let attrList = MashupPlatform.prefs.get('history_attributes');
+        let attrList = MashupPlatform.prefs.get('history_attributes').trim();
+        if (attrList !== "") {
+            attrList = attrList.split(new RegExp(',\\s*'));
+        } else {
+            attrList = [];
+        }
 
         let url = new URL("/v2/entities/" + entityID, historical_server);
 
@@ -149,21 +156,65 @@
             MashupPlatform.wiring.pushEvent("historyOutput", e.response);
         }.bind(this);
 
+        let aggrMethod = MashupPlatform.prefs.get('aggr_method');
+        let aggrPeriod = MashupPlatform.prefs.get('aggr_period');
+
+        let from = MashupPlatform.prefs.get('from');
+        let to = MashupPlatform.prefs.get('to');
+        let numberOfHours4History = MashupPlatform.prefs.get('historical_length');
+        if (numberOfHours4History > 0 || from !== "" || to !== "") {
+
+            if (from === "" && to === "") {
+                let historicLenght = parseInt(numberOfHours4History) * 60 * 60 * 1000;
+                to = moment().utc().valueOf();
+                from = moment(to - historicLenght).valueOf();
+            } else {
+                if (from !== null && moment(from).isValid()) {
+                    from = moment(from).valueOf();
+                }
+                if (to !== null && moment(to).isValid()) {
+                    to = moment(to).valueOf();
+                }
+            }
+        }
+
+        let data = [];
+        attrList.forEach((attribute) => {
+            data.push({
+                attrName: attribute,
+                values: []
+            });
+        });
+
+        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, [])
+            .then(successCB, failureCB);
+    };
+
+    const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index) {
+
         let options = {
             method: "GET",
             responseType: "json",
             parameters: {
-                attrs: attrList
+                offset: index.length
             },
-            requestHeaders: reqHeaders,
-            onSuccess: successCB,
-            onFailure: failureCB
+            requestHeaders: {
+                'FIWARE-Service': fiwareService,
+                'FIWARE-ServicePath': fiwareServicePath
+            }
         };
+        if (fromDate != "") {
+            options.parameters.fromDate = fromDate;
+        }
+        if (toDate != "") {
+            options.parameters.toDate = toDate;
+        }
 
-        let aggrMethod = MashupPlatform.prefs.get('aggr_method');
-        let aggrPeriod = MashupPlatform.prefs.get('aggr_period');
+        if (attrList.length) {
+            options.parameters.attrs = attrList;
+        }
 
-        if (aggrMethod !== "" && aggrPeriod !== "") {
+        if (attrList.length && aggrMethod !== "" && aggrPeriod !== "") {
             options.parameters.aggrMethod = aggrMethod;
             options.parameters.aggrPeriod = aggrPeriod;
         }
@@ -172,26 +223,23 @@
             options.parameters.type = theType;
         }
 
-        let from = MashupPlatform.prefs.get('from');
-        let to = MashupPlatform.prefs.get('to');
-        let numberOfHours4History = MashupPlatform.prefs.get('historical_length');
-        if (from !== "" || to !== "" || numberOfHours4History !== "") {
-
-            if (from === "" && to === "") {
-                let historicLenght = parseInt(numberOfHours4History) * 60 * 60 * 1000;
-                options.parameters.toDate = moment().utc().valueOf();
-                options.parameters.fromDate = moment(options.parameters.toDate - historicLenght).valueOf();
-            } else {
-                if (from !== null && moment(from).isValid()) {
-                    options.parameters.fromDate = moment(from).valueOf();
-                }
-                if (to !== null && moment(to).isValid()) {
-                    options.parameters.toDate = moment(to).valueOf();
-                }
+        return MashupPlatform.http.makeRequest(url, options).then((response) => {
+            if (response.status !== 200) {
+                return Promise.reject(response);
             }
-        }
+            index = index.concat(response.response.index);
+            data.forEach((attribute, i) => {
+                attribute.values = attribute.values.concat(response.response.attributes[i].values);
+            });
 
-        MashupPlatform.http.makeRequest(url, options);
+            if (response.response.index.length !== 10000) {
+                response.response.attributes = data;
+                response.response.index = index;
+                return response;
+            } else {
+                return _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index);
+            }
+        });
     };
 
     const doInitialSubscription = function doInitialSubscription() {
@@ -494,6 +542,7 @@
     /* end-import-block */
 
     const qlSource = new QuantumLeapSource();
-    window.addEventListener("DOMContentLoaded", qlSource.init.bind(qlSource), false);
+    window.theInit = qlSource.init.bind(qlSource);
+    window.addEventListener("DOMContentLoaded", window.theInit, false);
 
 })();

@@ -1,5 +1,5 @@
 /*
- * real-time-map-filter
+ * quantumleap-source
  *
  * Copyright (c) 2018 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
@@ -26,7 +26,8 @@
         let historicLenght = historical_length * 60 * 60 * 1000;
         var expected_historicalTo = moment(todayMockValue).utc().valueOf();
         var expected_historicalFrom = moment(expected_historicalTo - historicLenght).valueOf();
-        var attrListMock = 'attr1, attr2';
+        var attrListMockString = 'attr1, attr2';
+        var attrListMock = ['attr1', 'attr2'];
         var historical_serverMock = 'https://quantumpleap.example.com';
         var ngsi_serverMock = 'https://orion.example.com';
         var ngsi_tenant = 'Tenant';
@@ -39,14 +40,13 @@
                 attrs: attrListMock,
                 type: entity_typeMock,
                 fromDate: expected_historicalFrom,
-                toDate: expected_historicalTo
+                toDate: expected_historicalTo,
+                offset: 0
             },
             requestHeaders: {
                 'FIWARE-ServicePath': ngsi_service_pathMock,
                 'FIWARE-Service': ngsi_tenant
-            },
-            onSuccess: jasmine.any(Function),
-            onFailure: jasmine.any(Function)
+            }
         };
 
         var historyExampleSeries;
@@ -167,7 +167,7 @@
                 type: 'operator',
                 prefs: {
                     'historical_server': historical_serverMock,
-                    'history_attributes': attrListMock,
+                    'history_attributes': attrListMockString,
                     'entity_id': entity_idMock,
                     'entity_type': entity_typeMock,
                     'historical_length': historical_length,
@@ -187,15 +187,34 @@
                 inputs: ['entity_id'],
                 outputs: ['historyOutput']
             });
+
+            let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
+            window.MashupPlatform.http.addAnswer("Get", url, "200", "", () => {
+                return {
+                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
+                    status: 200
+                }
+            });
         });
 
         function resetMakeRequestMock() {
-            window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.callFake(function (url, request) {
-                request.onSuccess({
+
+            let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
+
+            window.MashupPlatform.http.addAnswer("Get", url, "200", "", () => {
+                return {
                     response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
                     status: 200
-                });
+                }
             });
+
+            // window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.callFake(function (url, request) {
+            //     request.onSuccess({
+            //         response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
+            //         status: 200
+            //     });
+            // });
+
         }
 
         beforeEach(function () {
@@ -300,7 +319,7 @@
                 expect(MashupPlatform.wiring.pushEvent).toHaveBeenCalledWith("historyOutput", expectedSerie);
 
                 done();
-            }, 200);
+            }, 201);
         });
 
         it("ignore wiring change events if already connected", () => {
@@ -434,6 +453,7 @@
 
         it("push discard no changes notifications and out of range values", (done) => {
             MashupPlatform.operator.outputs.historyOutput.connect(true);
+            window.removeEventListener("DOMContentLoaded",window.theInit, false);
             operator.init();
 
             let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
@@ -498,8 +518,8 @@
                         expect(MashupPlatform.wiring.pushEvent).toHaveBeenCalledWith("historyOutput", expectedSerie);
                         expect(MashupPlatform.wiring.pushEvent).toHaveBeenCalledTimes(1);
                         done();
-                    }, 200);
-                }, 200);
+                    }, 201);
+                }, 201);
             });
         });
 
@@ -588,9 +608,9 @@
                         expect(MashupPlatform.http.makeRequest).toHaveBeenCalledTimes(0);
 
                         done();
-                    }, 200);
-                }, 200);
-            }, 200);
+                    }, 201);
+                }, 201);
+            }, 201);
         });
     });
 

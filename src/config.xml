@@ -1,5 +1,5 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<operator xmlns="http://wirecloud.conwet.fi.upm.es/ns/macdescription/1" vendor="FICODES" name="quantumleap-source" version="0.1.8rc3">
+<operator xmlns="http://wirecloud.conwet.fi.upm.es/ns/macdescription/1" vendor="FICODES" name="quantumleap-source" version="0.1.9rc2">
     <details>
         <title>QuantumLeap source</title>
         <homepage>https://github.com/Ficodes/quantumleap-source-operator</homepage>
@@ -81,8 +81,8 @@
         <preference
                 name="historical_length"
                 type="number"
-                label="Number of hours for historical information"
-                description="Number of hours for historical information."
+                label="Number of hours for historical information (0 or less for all)"
+                description="Number of hours for historical information. (0 or less for all)"
                 default="7" />
         <preference
                 name="from"
