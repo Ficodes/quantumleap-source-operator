@@ -121,12 +121,22 @@
         let fiwareService = MashupPlatform.prefs.get('ngsi_tenant');
         let fiwareServicePath = MashupPlatform.prefs.get('ngsi_service_path');
 
-        let reqHeaders = {'FIWARE-ServicePath': fiwareServicePath};
+        const reqHeaders = {
+            "FIWARE-ServicePath": fiwareServicePath
+        };
         if (fiwareService !== "") {
             // If empty FIWARE-Service, the header should not be sent to QuantumLeap
             reqHeaders['FIWARE-Service'] =  fiwareService;
         }
 
+        if (MashupPlatform.prefs.get("use_owner_credentials")) {
+            reqHeaders["FIWARE-OAuth-Token"] = "true";
+            reqHeaders["FIWARE-OAuth-Header-Name"] = "Authorization";
+            reqHeaders["FIWARE-OAuth-Source"] = "workspaceowner";
+        } else if (MashupPlatform.prefs.get("use_user_fiware_token")) {
+            reqHeaders["FIWARE-OAuth-Token"] = "true";
+            reqHeaders["FIWARE-OAuth-Header-Name"] = "Authorization";
+        }
 
         let attrList = MashupPlatform.prefs.get('history_attributes').trim();
         if (attrList !== "") {
@@ -271,7 +281,7 @@
 
         if (MashupPlatform.prefs.get('use_owner_credentials')) {
             request_headers['FIWARE-OAuth-Token'] = 'true';
-            request_headers['FIWARE-OAuth-Header-Name'] = 'X-Auth-Token';
+            request_headers['FIWARE-OAuth-Header-Name'] = 'Authorization';
             request_headers['FIWARE-OAuth-Source'] = 'workspaceowner';
         }
 
