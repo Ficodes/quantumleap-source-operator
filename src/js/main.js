@@ -173,7 +173,7 @@
             values: []
         }));
 
-        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, [], 0).then((response) => {
+        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, reqHeaders, data, [], 0).then((response) => {
             historicalError = null;
             lastHistorical = response;
             if (!MashupPlatform.prefs.get('update_real_time') || lostUpload) {
@@ -187,7 +187,7 @@
         });
     };
 
-    const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index) {
+    const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, type, headers, data, index) {
 
         let options = {
             method: "GET",
@@ -195,7 +195,7 @@
             parameters: {
                 offset: index.length
             },
-            requestHeaders: reqHeaders
+            requestHeaders: headers
         };
         if (fromDate != "") {
             options.parameters.fromDate = fromDate;
@@ -213,8 +213,8 @@
             options.parameters.aggrPeriod = aggrPeriod;
         }
 
-        if (theType != null && theType !== "") {
-            options.parameters.type = theType;
+        if (type != null && type !== "") {
+            options.parameters.type = type;
         }
 
         return MashupPlatform.http.makeRequest(url, options).then((response) => {
@@ -228,16 +228,24 @@
 
             if (response.response.index.length !== 10000) {
                 return {
+                    entityId: response.response.entityId,
                     attributes: data,
                     index: index
                 };
             } else {
-                return _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index);
+                return _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, type, headers, data, index);
             }
         });
     };
 
     const doInitialSubscription = function doInitialSubscription() {
+        this.isFirstUpdate = true;
+        this.subscriptionId = null;
+        this.connection = null;
+
+        if (!MashupPlatform.operator.outputs.historyOutput.connected) {
+            return;
+        }
 
         let id_pattern;
         if (optionalID != null) {
@@ -251,13 +259,6 @@
             return;
         }
 
-        this.isFirstUpdate = true;
-        this.subscriptionId = null;
-        this.connection = null;
-
-        if (!MashupPlatform.operator.outputs.historyOutput.connected) {
-            return;
-        }
 
         this.ngsi_server = MashupPlatform.prefs.get('ngsi_server');
         this.ngsi_proxy = MashupPlatform.prefs.get('ngsi_proxy');
@@ -360,7 +361,7 @@
     const handlerReceiveEntities = function handlerReceiveEntities(elements, forcePush) {
         // MashupPlatform.operator.log("New updated received: " + moment().format('LTS'), MashupPlatform.log.INFO);
         lostEntityUpdate = elements;
-        if (elements != null && Array.isArray(elements) && elements.length > 0) {
+        if (Array.isArray(elements) && elements.length > 0) {
             pendingUpdates.push(elements[0]);
             if (lastHistorical == null) {
                 // waiting for QL response?? or error getting initial historical info?
@@ -431,12 +432,11 @@
             return false
         }
 
-        let lastDate = moment(lastHistorical.index[lastHistorical.index.length - 1] + "Z").valueOf();
-        let firstDate = moment(lastHistorical.index[0] + "Z").valueOf();
-        let numberOfDays4History = MashupPlatform.prefs.get('historical_length');
-        let historicLenght = numberOfDays4History  * 60 * 60 * 1000;
-        const toDate = moment().utc().valueOf();
-        const fromDate = moment(toDate - historicLenght).valueOf();
+        const lastDate = moment(lastHistorical.index[lastHistorical.index.length - 1] + "Z").valueOf();
+        const firstDate = moment(lastHistorical.index[0] + "Z").valueOf();
+        const numberOfHours4History = MashupPlatform.prefs.get('historical_length');
+        const toDate = moment().utc();
+        const fromDate = toDate.subtract(numberOfHours4History, 'hours').valueOf();
 
         if (MashupPlatform.prefs.get('update_real_time') && moment(dateModified).valueOf() > lastDate) {
 
