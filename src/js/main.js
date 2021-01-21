@@ -145,27 +145,7 @@
             attrList = [];
         }
 
-        let url = new URL("/v2/entities/" + entityID, historical_server);
-
-        let successCB = function successCB(hSeries) {
-            historicalError = null;
-            lastHistorical = hSeries.response;
-            if (!MashupPlatform.prefs.get('update_real_time') || lostUpload) {
-                lostUpload = false;
-                if (lostEntityUpdate != null) {
-                    handlerReceiveEntities.call(this, lostEntityUpdate, true);
-                } else {
-                    MashupPlatform.wiring.pushEvent("historyOutput", lastHistorical);
-                }
-            }
-        }.bind(this);
-
-        let failureCB = function failureCB(e) {
-            historicalError = e;
-            MashupPlatform.operator.log("Error getting Historical Data (" + e.status + "): " + JSON.stringify(e.response), MashupPlatform.log.ERROR);
-            MashupPlatform.wiring.pushEvent("historyOutput", e.response);
-        }.bind(this);
-
+        const url = new URL("/v2/entities/" + entityID, historical_server);
         let aggrMethod = MashupPlatform.prefs.get('aggr_method');
         let aggrPeriod = MashupPlatform.prefs.get('aggr_period');
 
@@ -188,16 +168,23 @@
             }
         }
 
-        let data = [];
-        attrList.forEach((attribute) => {
-            data.push({
-                attrName: attribute,
-                values: []
-            });
-        });
+        const data = attrList.map((attribute) => ({
+            attrName: attribute,
+            values: []
+        }));
 
-        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, [])
-            .then(successCB, failureCB);
+        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, [], 0).then((response) => {
+            historicalError = null;
+            lastHistorical = response;
+            if (!MashupPlatform.prefs.get('update_real_time') || lostUpload) {
+                lostUpload = false;
+                if (lostEntityUpdate != null) {
+                    handlerReceiveEntities.call(this, lostEntityUpdate, true);
+                } else {
+                    MashupPlatform.wiring.pushEvent("historyOutput", lastHistorical);
+                }
+            }
+        });
     };
 
     const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index) {
@@ -208,10 +195,7 @@
             parameters: {
                 offset: index.length
             },
-            requestHeaders: {
-                'FIWARE-Service': fiwareService,
-                'FIWARE-ServicePath': fiwareServicePath
-            }
+            requestHeaders: reqHeaders
         };
         if (fromDate != "") {
             options.parameters.fromDate = fromDate;
@@ -235,7 +219,7 @@
 
         return MashupPlatform.http.makeRequest(url, options).then((response) => {
             if (response.status !== 200) {
-                return Promise.reject(response);
+                return Promise.reject(new Error("Unexpected error code (" + response.status + ")"));
             }
             index = index.concat(response.response.index);
             data.forEach((attribute, i) => {
@@ -243,9 +227,10 @@
             });
 
             if (response.response.index.length !== 10000) {
-                response.response.attributes = data;
-                response.response.index = index;
-                return response;
+                return {
+                    attributes: data,
+                    index: index
+                };
             } else {
                 return _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index);
             }
@@ -394,7 +379,8 @@
             }
             optionalType = elements[0].type;
             if (interval == null) {
-                interval = setTimeout(function () {
+                interval = setTimeout(() => {
+                    interval = null;
                     lostEntityUpdate = null;
                     // let start = moment();
                     try {
@@ -417,10 +403,8 @@
                     } catch (e) {
                         MashupPlatform.operator.log("Error updating historical data using Context Broker notification");
                         pendingUpdates = [];
-                        interval = null;
-                        return;
                     }
-                }.bind(this),200);
+                }, 200);
             }
 
         } else {

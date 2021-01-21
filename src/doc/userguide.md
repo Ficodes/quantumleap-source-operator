@@ -1,4 +1,5 @@
-This operator allows you to use any QuantumLeap server as source of
-historical data. Then this operator update the entity historical
-information by creating a subscription to obtain real time notifications
-about changes on the entities of interest.
+This operator allows you to use any Quantum Leap server as source of
+information by retrieving the historical data it contains.
+
+This operator also can be connected with the context broker that is feeding the
+Quantum Leap server to also manage real time updates.
