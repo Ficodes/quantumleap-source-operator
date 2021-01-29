@@ -162,7 +162,7 @@
             }
         ];
 
-        beforeAll(function () {
+        beforeAll(() => {
             window.MashupPlatform = new MockMP({
                 type: 'operator',
                 prefs: {
@@ -198,26 +198,13 @@
         });
 
         function resetMakeRequestMock() {
+            window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.returnValue(Promise.resolve({
+                response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
+                status: 200
+            }));
+        };
 
-            let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
-
-            window.MashupPlatform.http.addAnswer("Get", url, "200", "", () => {
-                return {
-                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
-                    status: 200
-                }
-            });
-
-            // window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.callFake(function (url, request) {
-            //     request.onSuccess({
-            //         response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
-            //         status: 200
-            //     });
-            // });
-
-        }
-
-        beforeEach(function () {
+        beforeEach(() => {
             // jasmine.clock().install();
             MashupPlatform.reset();
             MashupPlatform.resetData();
@@ -264,7 +251,7 @@
             spyOn(window, 'addEventListener');
         });
 
-        afterEach(function () {
+        afterEach(() => {
             // jasmine.clock().uninstall();
         });
 

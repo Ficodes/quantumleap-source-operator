@@ -121,12 +121,22 @@
         let fiwareService = MashupPlatform.prefs.get('ngsi_tenant');
         let fiwareServicePath = MashupPlatform.prefs.get('ngsi_service_path');
 
-        let reqHeaders = {'FIWARE-ServicePath': fiwareServicePath};
+        const reqHeaders = {
+            "FIWARE-ServicePath": fiwareServicePath
+        };
         if (fiwareService !== "") {
             // If empty FIWARE-Service, the header should not be sent to QuantumLeap
             reqHeaders['FIWARE-Service'] =  fiwareService;
         }
 
+        if (MashupPlatform.prefs.get("use_owner_credentials")) {
+            reqHeaders["FIWARE-OAuth-Token"] = "true";
+            reqHeaders["FIWARE-OAuth-Header-Name"] = "Authorization";
+            reqHeaders["FIWARE-OAuth-Source"] = "workspaceowner";
+        } else if (MashupPlatform.prefs.get("use_user_fiware_token")) {
+            reqHeaders["FIWARE-OAuth-Token"] = "true";
+            reqHeaders["FIWARE-OAuth-Header-Name"] = "Authorization";
+        }
 
         let attrList = MashupPlatform.prefs.get('history_attributes').trim();
         if (attrList !== "") {
@@ -135,27 +145,7 @@
             attrList = [];
         }
 
-        let url = new URL("/v2/entities/" + entityID, historical_server);
-
-        let successCB = function successCB(hSeries) {
-            historicalError = null;
-            lastHistorical = hSeries.response;
-            if (!MashupPlatform.prefs.get('update_real_time') || lostUpload) {
-                lostUpload = false;
-                if (lostEntityUpdate != null) {
-                    handlerReceiveEntities.call(this, lostEntityUpdate, true);
-                } else {
-                    MashupPlatform.wiring.pushEvent("historyOutput", lastHistorical);
-                }
-            }
-        }.bind(this);
-
-        let failureCB = function failureCB(e) {
-            historicalError = e;
-            MashupPlatform.operator.log("Error getting Historical Data (" + e.status + "): " + JSON.stringify(e.response), MashupPlatform.log.ERROR);
-            MashupPlatform.wiring.pushEvent("historyOutput", e.response);
-        }.bind(this);
-
+        const url = new URL("/v2/entities/" + entityID, historical_server);
         let aggrMethod = MashupPlatform.prefs.get('aggr_method');
         let aggrPeriod = MashupPlatform.prefs.get('aggr_period');
 
@@ -178,19 +168,26 @@
             }
         }
 
-        let data = [];
-        attrList.forEach((attribute) => {
-            data.push({
-                attrName: attribute,
-                values: []
-            });
-        });
+        const data = attrList.map((attribute) => ({
+            attrName: attribute,
+            values: []
+        }));
 
-        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, [])
-            .then(successCB, failureCB);
+        _getHistorical(url, attrList, from, to, aggrMethod, aggrPeriod, theType, reqHeaders, data, [], 0).then((response) => {
+            historicalError = null;
+            lastHistorical = response;
+            if (!MashupPlatform.prefs.get('update_real_time') || lostUpload) {
+                lostUpload = false;
+                if (lostEntityUpdate != null) {
+                    handlerReceiveEntities.call(this, lostEntityUpdate, true);
+                } else {
+                    MashupPlatform.wiring.pushEvent("historyOutput", lastHistorical);
+                }
+            }
+        });
     };
 
-    const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index) {
+    const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, type, headers, data, index) {
 
         let options = {
             method: "GET",
@@ -198,10 +195,7 @@
             parameters: {
                 offset: index.length
             },
-            requestHeaders: {
-                'FIWARE-Service': fiwareService,
-                'FIWARE-ServicePath': fiwareServicePath
-            }
+            requestHeaders: headers
         };
         if (fromDate != "") {
             options.parameters.fromDate = fromDate;
@@ -219,13 +213,13 @@
             options.parameters.aggrPeriod = aggrPeriod;
         }
 
-        if (theType != null && theType !== "") {
-            options.parameters.type = theType;
+        if (type != null && type !== "") {
+            options.parameters.type = type;
         }
 
         return MashupPlatform.http.makeRequest(url, options).then((response) => {
             if (response.status !== 200) {
-                return Promise.reject(response);
+                return Promise.reject(new Error("Unexpected error code (" + response.status + ")"));
             }
             index = index.concat(response.response.index);
             data.forEach((attribute, i) => {
@@ -233,16 +227,25 @@
             });
 
             if (response.response.index.length !== 10000) {
-                response.response.attributes = data;
-                response.response.index = index;
-                return response;
+                return {
+                    entityId: response.response.entityId,
+                    attributes: data,
+                    index: index
+                };
             } else {
-                return _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, theType, fiwareService, fiwareServicePath, data, index);
+                return _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, type, headers, data, index);
             }
         });
     };
 
     const doInitialSubscription = function doInitialSubscription() {
+        this.isFirstUpdate = true;
+        this.subscriptionId = null;
+        this.connection = null;
+
+        if (!MashupPlatform.operator.outputs.historyOutput.connected) {
+            return;
+        }
 
         let id_pattern;
         if (optionalID != null) {
@@ -256,13 +259,6 @@
             return;
         }
 
-        this.isFirstUpdate = true;
-        this.subscriptionId = null;
-        this.connection = null;
-
-        if (!MashupPlatform.operator.outputs.historyOutput.connected) {
-            return;
-        }
 
         this.ngsi_server = MashupPlatform.prefs.get('ngsi_server');
         this.ngsi_proxy = MashupPlatform.prefs.get('ngsi_proxy');
@@ -271,7 +267,7 @@
 
         if (MashupPlatform.prefs.get('use_owner_credentials')) {
             request_headers['FIWARE-OAuth-Token'] = 'true';
-            request_headers['FIWARE-OAuth-Header-Name'] = 'X-Auth-Token';
+            request_headers['FIWARE-OAuth-Header-Name'] = 'Authorization';
             request_headers['FIWARE-OAuth-Source'] = 'workspaceowner';
         }
 
@@ -365,7 +361,7 @@
     const handlerReceiveEntities = function handlerReceiveEntities(elements, forcePush) {
         // MashupPlatform.operator.log("New updated received: " + moment().format('LTS'), MashupPlatform.log.INFO);
         lostEntityUpdate = elements;
-        if (elements != null && Array.isArray(elements) && elements.length > 0) {
+        if (Array.isArray(elements) && elements.length > 0) {
             pendingUpdates.push(elements[0]);
             if (lastHistorical == null) {
                 // waiting for QL response?? or error getting initial historical info?
@@ -384,7 +380,8 @@
             }
             optionalType = elements[0].type;
             if (interval == null) {
-                interval = setTimeout(function () {
+                interval = setTimeout(() => {
+                    interval = null;
                     lostEntityUpdate = null;
                     // let start = moment();
                     try {
@@ -407,10 +404,8 @@
                     } catch (e) {
                         MashupPlatform.operator.log("Error updating historical data using Context Broker notification");
                         pendingUpdates = [];
-                        interval = null;
-                        return;
                     }
-                }.bind(this),200);
+                }, 200);
             }
 
         } else {
@@ -437,12 +432,11 @@
             return false
         }
 
-        let lastDate = moment(lastHistorical.index[lastHistorical.index.length - 1] + "Z").valueOf();
-        let firstDate = moment(lastHistorical.index[0] + "Z").valueOf();
-        let numberOfDays4History = MashupPlatform.prefs.get('historical_length');
-        let historicLenght = numberOfDays4History  * 60 * 60 * 1000;
-        const toDate = moment().utc().valueOf();
-        const fromDate = moment(toDate - historicLenght).valueOf();
+        const lastDate = moment(lastHistorical.index[lastHistorical.index.length - 1] + "Z").valueOf();
+        const firstDate = moment(lastHistorical.index[0] + "Z").valueOf();
+        const numberOfHours4History = MashupPlatform.prefs.get('historical_length');
+        const toDate = moment().utc();
+        const fromDate = toDate.subtract(numberOfHours4History, 'hours').valueOf();
 
         if (MashupPlatform.prefs.get('update_real_time') && moment(dateModified).valueOf() > lastDate) {
 

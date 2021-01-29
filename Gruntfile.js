@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019 Future Internet Consulting and Development Solutions S.L.
+ * Copyright (c) 2019-2021 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
  */
 
@@ -38,12 +38,6 @@ module.exports = function (grunt) {
                     {expand: true, cwd: 'src/js', src: '*', dest: 'build/src/js'},
                     {expand: true, cwd: 'node_modules/moment/min', src: 'moment-with-locales.min.js', dest: 'build/lib/lib/js'}
                 ]
-            }
-        },
-
-        coveralls: {
-            library: {
-                src: 'build/coverage/lcov/lcov.info',
             }
         },
 
@@ -112,12 +106,6 @@ module.exports = function (grunt) {
 
         karma: {
             options: {
-                customLaunchers: {
-                    ChromeNoSandbox: {
-                        base: "Chrome",
-                        flags: ['--no-sandbox']
-                    }
-                },
                 files: [
                     'node_modules/mock-applicationmashup/dist/MockMP.js',
                     'node_modules/moment/min/moment-with-locales.js',
@@ -125,8 +113,8 @@ module.exports = function (grunt) {
                     'tests/js/*Spec.js'
                 ],
                 frameworks: ['jasmine'],
-                reporters: ['progress', 'coverage'],
-                browsers: ['Chrome', 'Firefox'],
+                reporters: ['progress'],
+                browsers: ["ChromeHeadless", "FirefoxHeadless"],
                 singleRun: true
             },
             operator: {
@@ -135,6 +123,7 @@ module.exports = function (grunt) {
                         type: 'html',
                         dir: 'build/coverage'
                     },
+                    reporters: ['progress', 'coverage'],
                     preprocessors: {
                         'src/js/*.js': ['coverage'],
                     }
@@ -157,6 +146,12 @@ module.exports = function (grunt) {
                         "src/js/*.js": ['coverage'],
                     }
                 }
+            },
+            operatordebug: {
+                options: {
+                    browsers: ["Chrome", "Firefox"],
+                    singleRun: false
+                }
             }
         },
 
@@ -177,7 +172,6 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-compress');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-clean');
-    grunt.loadNpmTasks('grunt-coveralls');
     grunt.loadNpmTasks('grunt-strip-code');
     grunt.loadNpmTasks('grunt-text-replace');
 
@@ -186,10 +180,14 @@ module.exports = function (grunt) {
         'karma:operator'
     ]);
 
+    grunt.registerTask('debug', [
+        'eslint',
+        'karma:operatordebug'
+    ]);
+
     grunt.registerTask('ci', [
         'eslint',
-        'karma:operatorci',
-        'coveralls'
+        'karma:operatorci'
     ]);
 
     grunt.registerTask('build', [
