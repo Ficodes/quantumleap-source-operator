@@ -134,8 +134,7 @@ module.exports = function (grunt) {
                     junitReporter: {
                         "outputDir": 'build/test-reports'
                     },
-                    reporters: ['junit', 'coverage'],
-                    browsers: ['ChromeNoSandbox', 'Firefox'],
+                    reporters: ["junit", "coverage", "progress"],
                     coverageReporter: {
                         reporters: [
                             {type: 'cobertura', dir: 'build/coverage', subdir: 'xml'},
