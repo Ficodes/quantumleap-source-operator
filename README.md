@@ -2,7 +2,7 @@
 
 [![](https://nexus.lab.fiware.org/repository/raw/public/badges/chapters/visualization.svg)](https://www.fiware.org/developers/catalogue/)
 ![](https://img.shields.io/github/license/Ficodes/quantumleap-source-operator.svg)<br/>
-[![Build Status](https://travis-ci.org/Ficodes/quantumleap-source-operator.svg?branch=develop)](https://travis-ci.org/Ficodes/quantumleap-source-operator)
+[![Tests](https://github.com/Ficodes/quantumleap-source-operator/workflows/Tests/badge.svg)](https://github.com/Ficodes/quantumleap-source-operator/actions?query=workflow%3A%22Tests%22)
 [![Coverage Status](https://coveralls.io/repos/github/Ficodes/quantumleap-source-operator/badge.svg?branch=develop)](https://coveralls.io/github/Ficodes/quantumleap-source-operator?branch=develop)
 
 The QuantumLeap source operator is a [WireCloud operator](http://wirecloud.readthedocs.org/en/latest/) usable for adding
