@@ -1,7 +1,7 @@
 /*
  * quantumleap-source
  *
- * Copyright (c) 2020 Future Internet Consulting and Development Solutions S.L.
+ * Copyright (c) 2020-2021 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
  *
  */
@@ -219,11 +219,12 @@
 
         return MashupPlatform.http.makeRequest(url, options).then((response) => {
             if (response.status !== 200) {
-                return Promise.reject(new Error("Unexpected error code (" + response.status + ")"));
+                return Promise.reject(new Error(`Unexpected error code (${response.status})`));
             }
             index = index.concat(response.response.index);
-            data.forEach((attribute, i) => {
-                attribute.values = attribute.values.concat(response.response.attributes[i].values);
+            response.response.attributes.forEach((attribute) => {
+                const aggregated = data.find((a) => a.attrName === attribute.attrName);
+                aggregated.values = [...aggregated.values, ...attribute.values];
             });
 
             if (response.response.index.length !== 10000) {

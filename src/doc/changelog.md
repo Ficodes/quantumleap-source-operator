@@ -1,3 +1,8 @@
+## 0.2.1 (2021-04-XX)
+
+- Fix problem mixing attribute values. See #17
+
+
 ## 0.2.0 (2021-01-29)
 
 - Rettrieve data using pagination when there are more than 1000 entries.
