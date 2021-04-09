@@ -1,4 +1,4 @@
-## 0.2.1 (2021-04-XX)
+## 0.2.1 (2021-04-09)
 
 - Arreglado un problema por el que se mezclaban los valores de los atributos.
     Ver #17.
