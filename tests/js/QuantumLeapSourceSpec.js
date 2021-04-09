@@ -1,7 +1,7 @@
 /*
  * quantumleap-source
  *
- * Copyright (c) 2018 Future Internet Consulting and Development Solutions S.L.
+ * Copyright (c) 2018-2021 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
  *
  */
@@ -12,7 +12,7 @@
 
     "use strict";
 
-    describe("QuantumLeap Source operator should", function () {
+    describe("QuantumLeap Source operator should", () => {
 
         let operator, abort_mock, entity_pages, entity_page_i;
 
@@ -185,18 +185,10 @@
                 inputs: ['entity_id'],
                 outputs: ['historyOutput']
             });
-
-            const url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
-            window.MashupPlatform.http.addAnswer("Get", url, "200", "", () => {
-                return {
-                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
-                    status: 200
-                }
-            });
         });
 
         const resetMakeRequestMock = function resetMakeRequestMock() {
-            window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.returnValue(Promise.resolve({
+            window.MashupPlatform.http.makeRequest.and.returnValue(Promise.resolve({
                 response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
                 status: 200
             }));
@@ -437,7 +429,7 @@
 
         it("push discard no changes notifications and out of range values", (done) => {
             MashupPlatform.operator.outputs.historyOutput.connect(true);
-            window.removeEventListener("DOMContentLoaded",window.theInit, false);
+            window.removeEventListener("DOMContentLoaded", window.theInit, false);
             operator.init();
 
             const url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
@@ -578,7 +570,7 @@
                     operator.handlerReceiveEntities(initSub2);
                     operator.handlerReceiveEntities(update2);
 
-                    // Witing for first update
+                    // Waiting for first update
                     setTimeout(() => {
 
                         expect(MashupPlatform.operator.log).toHaveBeenCalledWith("Adding entity metadata with the" +
@@ -596,6 +588,65 @@
                 }, 201);
             }, 201);
         });
+
+        it("should support pagination", (done) => {
+            MashupPlatform.prefs.set('update_real_time', false);
+            MashupPlatform.operator.outputs.historyOutput.connect(true);
+
+            window.MashupPlatform.http.makeRequest.and.returnValues(
+                // First response
+                Promise.resolve({
+                    response: {
+                        attributes: [
+                            {
+                                attrName: "attr2",
+                                values: new Array(10000).fill(2)
+                            },
+                            {
+                                attrName: "attr1",
+                                values: new Array(10000).fill(0.2)
+                            }
+
+                        ],
+                        entityId: entity_idMock,
+                        index: new Array(10000)
+                    },
+                    status: 200
+                }),
+                // Second response
+                Promise.resolve({
+                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
+                    status: 200
+                })
+            );
+            operator.init();
+
+            setTimeout(() => {
+                expect(MashupPlatform.http.makeRequest).toHaveBeenCalledTimes(2);
+                expect(MashupPlatform.wiring.pushEvent).toHaveBeenCalledTimes(1);
+                const data = MashupPlatform.wiring.pushEvent.calls.argsFor(0)[1];
+                expect(data).toEqual({
+                    attributes: [
+                        {
+                            attrName: "attr1",
+                            values: jasmine.any(Array)
+                        },
+                        {
+                            attrName: "attr2",
+                            values: jasmine.any(Array)
+                        }
+                    ],
+                    entityId: entity_idMock,
+                    index: jasmine.any(Array)
+                });
+                expect(data.attributes[0].values[0]).toBe(0.2);
+                expect(data.attributes[0].values[10009]).toBe(0.449375);
+                expect(data.attributes[1].values[0]).toBe(2);
+                expect(data.attributes[1].values[10009]).toBe(1);
+                done();
+            }, 200);
+        });
+
     });
 
 })();
