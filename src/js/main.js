@@ -1,7 +1,7 @@
 /*
  * quantumleap-source
  *
- * Copyright (c) 2020 Future Internet Consulting and Development Solutions S.L.
+ * Copyright (c) 2020-2021 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
  *
  */
@@ -117,9 +117,9 @@
             theType = MashupPlatform.prefs.get('entity_type');
         }
 
-        let historical_server = MashupPlatform.prefs.get('historical_server');
-        let fiwareService = MashupPlatform.prefs.get('ngsi_tenant');
-        let fiwareServicePath = MashupPlatform.prefs.get('ngsi_service_path');
+        const historical_server = MashupPlatform.prefs.get('historical_server');
+        const fiwareService = MashupPlatform.prefs.get('ngsi_tenant');
+        const fiwareServicePath = MashupPlatform.prefs.get('ngsi_service_path');
 
         const reqHeaders = {
             "FIWARE-ServicePath": fiwareServicePath
@@ -146,16 +146,16 @@
         }
 
         const url = new URL("/v2/entities/" + entityID, historical_server);
-        let aggrMethod = MashupPlatform.prefs.get('aggr_method');
-        let aggrPeriod = MashupPlatform.prefs.get('aggr_period');
+        const aggrMethod = MashupPlatform.prefs.get('aggr_method');
+        const aggrPeriod = MashupPlatform.prefs.get('aggr_period');
 
         let from = MashupPlatform.prefs.get('from');
         let to = MashupPlatform.prefs.get('to');
-        let numberOfHours4History = MashupPlatform.prefs.get('historical_length');
+        const numberOfHours4History = MashupPlatform.prefs.get('historical_length');
         if (numberOfHours4History > 0 || from !== "" || to !== "") {
 
             if (from === "" && to === "") {
-                let toDate = moment().utc();
+                const toDate = moment().utc();
                 to = toDate.valueOf();
                 from = toDate.subtract(numberOfHours4History, 'hours').valueOf();
             } else {
@@ -189,7 +189,7 @@
 
     const _getHistorical = function _getHistorical(url, attrList, fromDate, toDate, aggrMethod, aggrPeriod, type, headers, data, index) {
 
-        let options = {
+        const options = {
             method: "GET",
             responseType: "json",
             parameters: {
@@ -219,11 +219,12 @@
 
         return MashupPlatform.http.makeRequest(url, options).then((response) => {
             if (response.status !== 200) {
-                return Promise.reject(new Error("Unexpected error code (" + response.status + ")"));
+                return Promise.reject(new Error(`Unexpected error code (${response.status})`));
             }
             index = index.concat(response.response.index);
-            data.forEach((attribute, i) => {
-                attribute.values = attribute.values.concat(response.response.attributes[i].values);
+            response.response.attributes.forEach((attribute) => {
+                const aggregated = data.find((a) => a.attrName === attribute.attrName);
+                aggregated.values = [...aggregated.values, ...attribute.values];
             });
 
             if (response.response.index.length !== 10000) {
@@ -263,7 +264,7 @@
         this.ngsi_server = MashupPlatform.prefs.get('ngsi_server');
         this.ngsi_proxy = MashupPlatform.prefs.get('ngsi_proxy');
 
-        let request_headers = {};
+        const request_headers = {};
 
         if (MashupPlatform.prefs.get('use_owner_credentials')) {
             request_headers['FIWARE-OAuth-Token'] = 'true';
@@ -271,12 +272,12 @@
             request_headers['FIWARE-OAuth-Source'] = 'workspaceowner';
         }
 
-        let tenant = MashupPlatform.prefs.get('ngsi_tenant').trim();
+        const tenant = MashupPlatform.prefs.get('ngsi_tenant').trim();
         if (tenant !== '') {
             request_headers['FIWARE-Service'] = tenant;
         }
 
-        let path = MashupPlatform.prefs.get('ngsi_service_path').trim();
+        const path = MashupPlatform.prefs.get('ngsi_service_path').trim();
         if (path !== '' && path !== '/') {
             request_headers['FIWARE-ServicePath'] = path;
         }
@@ -287,13 +288,13 @@
             ngsi_proxy_url: this.ngsi_proxy
         });
 
-        let notification = {
+        const notification = {
             attrsFormat: "normalized",
             callback: (notification) => {
                 handlerReceiveEntities.call(this, notification.data);
             }
         };
-        let attrs = MashupPlatform.prefs.get('history_attributes').trim();
+        const attrs = MashupPlatform.prefs.get('history_attributes').trim();
 
         let condition = undefined;
 
@@ -312,7 +313,7 @@
             // TODO all attributes?
             // doInitialQueries.call(this, id_pattern, types, filter);
         } else {
-            let entities = [{id: id_pattern}];
+            const entities = [{id: id_pattern}];
 
             this.connection.v2.createSubscription({
                 description: "QuantumLeap source subscription",
@@ -419,7 +420,7 @@
             return false;
         }
 
-        let isMetadataRequired = MashupPlatform.prefs.get('include_metadata');
+        const isMetadataRequired = MashupPlatform.prefs.get('include_metadata');
         let dateModified;
         // Add new index
         if (entity.dateModified != null) {

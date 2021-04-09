@@ -1,29 +1,28 @@
 /*
  * quantumleap-source
  *
- * Copyright (c) 2018 Future Internet Consulting and Development Solutions S.L.
+ * Copyright (c) 2018-2021 Future Internet Consulting and Development Solutions S.L.
  * Apache License 2.0
  *
  */
 
-/* globals MashupPlatform, MockMP, beforeAll, beforeEach, QuantumLeapSource moment */
+/* globals MashupPlatform, MockMP, NGSI, beforeAll, beforeEach, QuantumLeapSource moment */
 
 (function () {
 
     "use strict";
 
-    describe("QuantumLeap Source operator should", function () {
+    describe("QuantumLeap Source operator should", () => {
 
-        var operator, abort_mock, entity_pages, entity_page_i;
+        let operator, abort_mock, entity_pages, entity_page_i;
 
-        var realMoment = moment;
+        const realMoment = moment;
 
-        var entity_idMock = 'exampleEntityId:123';
-        var entity_typeMock = 'exampleType';
-        var todayMockValue = "2019-10-04T22:02:00.00Z";
-        var historical_length = 24;
+        const entity_idMock = 'exampleEntityId:123';
+        const entity_typeMock = 'exampleType';
+        const todayMockValue = "2019-10-04T22:02:00.00Z";
+        const historical_length = 24;
 
-        let historicLenght = historical_length * 60 * 60 * 1000;
         const expected_historicalTo = realMoment(todayMockValue).utc().valueOf();
         const expected_historicalFrom = realMoment(todayMockValue).utc().subtract(historical_length, 'hour').valueOf();
         const attrListMockString = 'attr1, attr2';
@@ -33,7 +32,7 @@
         const ngsi_tenant = 'Tenant';
         const ngsi_service_pathMock = '/Spain/Madrid';
 
-        let expectedQLRequest = {
+        const expectedQLRequest = {
             method: "GET",
             responseType: "json",
             parameters: {
@@ -49,7 +48,6 @@
             }
         };
 
-        var historyExampleSeries;
         const lastIndex = "2019-10-04T21:59:00.000";
         const lastIndexZ = "2019-10-04T21:59:00.00Z";
 
@@ -102,23 +100,23 @@
             ]
         };
 
-        let attr1Val = 5.69;
-        let attr2Val = 94;
-        let attr1Meta = {
-            unit:{
+        const attr1Val = 5.69;
+        const attr2Val = 94;
+        const attr1Meta = {
+            unit: {
                 type: "Text",
                 value: "m/s"
             }
         };
-        let attr2Meta = {
+        const attr2Meta = {
             unit: {
                 type: "Text",
                 value: "º"
             }
         };
-        let dateModifiedMock = "2019-10-04T22:05:00.00Z";
+        const dateModifiedMock = "2019-10-04T22:05:00.00Z";
 
-        let initial_update_after_subscription = [
+        const initial_update_after_subscription = [
             {
                 dateModified: {
                     value: lastIndexZ,
@@ -140,7 +138,7 @@
             }
         ];
 
-        let update = [
+        const update = [
             {
                 dateModified: {
                     value: dateModifiedMock,
@@ -187,18 +185,10 @@
                 inputs: ['entity_id'],
                 outputs: ['historyOutput']
             });
-
-            let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
-            window.MashupPlatform.http.addAnswer("Get", url, "200", "", () => {
-                return {
-                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
-                    status: 200
-                }
-            });
         });
 
-        function resetMakeRequestMock() {
-            window.MashupPlatform.http.makeRequest = jasmine.createSpy('qlRequest').and.returnValue(Promise.resolve({
+        const resetMakeRequestMock = function resetMakeRequestMock() {
+            window.MashupPlatform.http.makeRequest.and.returnValue(Promise.resolve({
                 response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
                 status: 200
             }));
@@ -208,7 +198,6 @@
             // jasmine.clock().install();
             MashupPlatform.reset();
             MashupPlatform.resetData();
-            historyExampleSeries = JSON.parse(JSON.stringify(INITIAL_SERIE));
             operator = new QuantumLeapSource();
             abort_mock = jasmine.createSpy('abort');
             entity_pages = [{results: [], cout: 0}];
@@ -223,14 +212,14 @@
                             return Promise.resolve();
                         }),
                         listEntities: jasmine.createSpy('listEntities').and.callFake(function () {
-                            var i = entity_page_i++;
+                            const i = entity_page_i++;
                             if (entity_page_i === entity_pages.length) {
                                 entity_page_i = 0;
                             }
-                            var p = Promise.resolve(entity_pages[i]);
+                            const p = Promise.resolve(entity_pages[i]);
                             return {
                                 then: function () {
-                                    var result = p.then(arguments[0], arguments[1]);
+                                    const result = p.then(arguments[0], arguments[1]);
                                     result.abort = abort_mock;
                                     return result;
                                 }
@@ -296,7 +285,7 @@
             // First update from CB after subscription (should only take the metadata if required)
             operator.handlerReceiveEntities(initial_update_after_subscription);
 
-            let expectedSerie = JSON.parse(JSON.stringify(INITIAL_SERIE));
+            const expectedSerie = JSON.parse(JSON.stringify(INITIAL_SERIE));
             // Add metadata
             expectedSerie.attributes[0].metadata = attr1Meta;
             expectedSerie.attributes[1].metadata = attr2Meta;
@@ -313,7 +302,7 @@
             MashupPlatform.operator.outputs.historyOutput.connect(true);
             operator.init();
 
-            var initial_connection = operator.connection;
+            const initial_connection = operator.connection;
             MashupPlatform.wiring.registerStatusCallback.calls.mostRecent().args[0]();
 
             expect(operator.connection).toBe(initial_connection);
@@ -355,7 +344,7 @@
             MashupPlatform.operator.outputs.historyOutput.connect(true);
 
             operator.init();
-            var initial_connection = operator.connection;
+            const initial_connection = operator.connection;
             expect(initial_connection).not.toEqual(null);
 
             MashupPlatform.prefs.simulate({
@@ -379,7 +368,7 @@
             MashupPlatform.prefs.set('ngsi_update_attributes', 'location');
 
             operator.init();
-            var initial_connection = operator.connection;
+            const initial_connection = operator.connection;
             expect(initial_connection).not.toEqual(null);
 
             // Wait until the subscription is created
@@ -411,7 +400,7 @@
         it("cancel pending queries before unloading", () => {
             MashupPlatform.operator.outputs.historyOutput.connect(true);
             operator.init();
-            var connection = operator.connection;
+            const connection = operator.connection;
 
             // Call beforeunload listener
             window.addEventListener.calls.mostRecent().args[1]();
@@ -423,7 +412,7 @@
             MashupPlatform.operator.outputs.historyOutput.connect(true);
             MashupPlatform.prefs.set('ngsi_update_attributes', 'location');
             operator.init();
-            var connection = operator.connection;
+            const connection = operator.connection;
 
             // Wait until subscription is created
             setTimeout(() => {
@@ -440,17 +429,17 @@
 
         it("push discard no changes notifications and out of range values", (done) => {
             MashupPlatform.operator.outputs.historyOutput.connect(true);
-            window.removeEventListener("DOMContentLoaded",window.theInit, false);
+            window.removeEventListener("DOMContentLoaded", window.theInit, false);
             operator.init();
 
-            let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
+            const url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
 
             expect(MashupPlatform.http.makeRequest.calls.allArgs()[0][0].pathname).toEqual(url.pathname);
             expect(MashupPlatform.http.makeRequest.calls.allArgs()[0][1]).toEqual(jasmine.objectContaining(expectedQLRequest));
 
             expect(MashupPlatform.http.makeRequest).toHaveBeenCalledTimes(1);
 
-            let expectedSerie = JSON.parse(JSON.stringify(INITIAL_SERIE));
+            const expectedSerie = JSON.parse(JSON.stringify(INITIAL_SERIE));
             // Add metadata
             expectedSerie.attributes[0].metadata = attr1Meta;
             expectedSerie.attributes[1].metadata = attr2Meta;
@@ -514,14 +503,14 @@
             MashupPlatform.operator.outputs.historyOutput.connect(true);
 
             // Add metadata
-            let expectedSerie = JSON.parse(JSON.stringify(INITIAL_SERIE));
+            const expectedSerie = JSON.parse(JSON.stringify(INITIAL_SERIE));
             expectedSerie.attributes[0].metadata = attr1Meta;
             expectedSerie.attributes[1].metadata = attr2Meta;
 
             operator.init();
 
             expect(operator.connection).not.toEqual(null);
-            let url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
+            const url = new URL("/v2/entities/" + entity_idMock, historical_serverMock);
             expect(MashupPlatform.http.makeRequest.calls.allArgs()[0][0].pathname).toEqual(url.pathname);
             expect(MashupPlatform.http.makeRequest.calls.allArgs()[0][1]).toEqual(jasmine.objectContaining(expectedQLRequest));
             expect(MashupPlatform.operator.log).toHaveBeenCalledTimes(0);
@@ -547,11 +536,11 @@
 
                 MashupPlatform.reset();
 
-                let newID = "OtherId";
+                const newID = "OtherId";
                 operator.setNewEntityID(newID);
 
                 setTimeout(() => {
-                    let url = new URL("/v2/entities/" + newID, historical_serverMock);
+                    const url = new URL("/v2/entities/" + newID, historical_serverMock);
                     expect(MashupPlatform.http.makeRequest.calls.allArgs()[0][0].pathname).toEqual(url.pathname);
                     expect(MashupPlatform.http.makeRequest.calls.allArgs()[0][1]).toEqual(jasmine.objectContaining(expectedQLRequest));
                     expect(MashupPlatform.http.makeRequest).toHaveBeenCalledTimes(1);
@@ -569,19 +558,19 @@
                     expectedSerie.attributes[0].values.shift();
                     expectedSerie.attributes[1].values.shift();
 
-                    let update2 = JSON.parse(JSON.stringify(update));
+                    const update2 = JSON.parse(JSON.stringify(update));
                     // In fact is not necessary set the ID. does not check this ID after set the subscription
                     update2[0].id = newID;
                     update2[0].attr2.value = 666;
                     MashupPlatform.reset();
-                    let initSub2 = JSON.parse(JSON.stringify(initial_update_after_subscription));
+                    const initSub2 = JSON.parse(JSON.stringify(initial_update_after_subscription));
                     initSub2[0].id = newID;
 
                     // First update from CB after subscription (should only take the metadata if required)
                     operator.handlerReceiveEntities(initSub2);
                     operator.handlerReceiveEntities(update2);
 
-                    // Witing for first update
+                    // Waiting for first update
                     setTimeout(() => {
 
                         expect(MashupPlatform.operator.log).toHaveBeenCalledWith("Adding entity metadata with the" +
@@ -599,6 +588,65 @@
                 }, 201);
             }, 201);
         });
+
+        it("should support pagination", (done) => {
+            MashupPlatform.prefs.set('update_real_time', false);
+            MashupPlatform.operator.outputs.historyOutput.connect(true);
+
+            window.MashupPlatform.http.makeRequest.and.returnValues(
+                // First response
+                Promise.resolve({
+                    response: {
+                        attributes: [
+                            {
+                                attrName: "attr2",
+                                values: new Array(10000).fill(2)
+                            },
+                            {
+                                attrName: "attr1",
+                                values: new Array(10000).fill(0.2)
+                            }
+
+                        ],
+                        entityId: entity_idMock,
+                        index: new Array(10000)
+                    },
+                    status: 200
+                }),
+                // Second response
+                Promise.resolve({
+                    response: JSON.parse(JSON.stringify(INITIAL_SERIE)),
+                    status: 200
+                })
+            );
+            operator.init();
+
+            setTimeout(() => {
+                expect(MashupPlatform.http.makeRequest).toHaveBeenCalledTimes(2);
+                expect(MashupPlatform.wiring.pushEvent).toHaveBeenCalledTimes(1);
+                const data = MashupPlatform.wiring.pushEvent.calls.argsFor(0)[1];
+                expect(data).toEqual({
+                    attributes: [
+                        {
+                            attrName: "attr1",
+                            values: jasmine.any(Array)
+                        },
+                        {
+                            attrName: "attr2",
+                            values: jasmine.any(Array)
+                        }
+                    ],
+                    entityId: entity_idMock,
+                    index: jasmine.any(Array)
+                });
+                expect(data.attributes[0].values[0]).toBe(0.2);
+                expect(data.attributes[0].values[10009]).toBe(0.449375);
+                expect(data.attributes[1].values[0]).toBe(2);
+                expect(data.attributes[1].values[10009]).toBe(1);
+                done();
+            }, 200);
+        });
+
     });
 
 })();

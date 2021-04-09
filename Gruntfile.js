@@ -3,8 +3,8 @@
  * Apache License 2.0
  */
 
-var ConfigParser = require('wirecloud-config-parser');
-var parser = new ConfigParser('src/config.xml');
+const ConfigParser = require('wirecloud-config-parser');
+const parser = new ConfigParser('src/config.xml');
 
 module.exports = function (grunt) {
 
@@ -28,7 +28,7 @@ module.exports = function (grunt) {
                 options: {
                     configFile: '.eslintrc-jasmine'
                 },
-                src: ['src/test/**/*.js', '!src/test/fixtures/']
+                src: ['tests/**/*.js', '!tests/fixtures/']
             }
         },
 
