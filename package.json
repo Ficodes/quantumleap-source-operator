@@ -10,16 +10,16 @@
     "grunt-text-replace": "~0.4.0",
     "grunt-wirecloud": "^0.9.7",
     "gruntify-eslint": "^5.0.0",
-    "jasmine-core": "2.9.1",
-    "karma": "^5.2.3",
+    "jasmine-core": "^2.99.1",
+    "karma": "^6.3.4",
     "karma-chrome-launcher": "^3.1.0",
     "karma-coverage": "^2.0.1",
     "karma-firefox-launcher": "^2.1.0",
-    "karma-jasmine": "^1.0.2",
+    "karma-jasmine": "^1.1.2",
     "karma-junit-reporter": "^2.0.1",
     "mock-applicationmashup": "^1.0.0-f",
     "moment": "^2.24.0",
-    "wirecloud-config-parser": "^0.2.2"
+    "wirecloud-config-parser": "^0.2.3"
   },
   "private": true,
   "name": "quantumleap-source-operator"
