@@ -23,8 +23,8 @@
         const todayMockValue = "2019-10-04T22:02:00.00Z";
         const historical_length = 24;
 
-        const expected_historicalTo = realMoment(todayMockValue).utc().valueOf();
-        const expected_historicalFrom = realMoment(todayMockValue).utc().subtract(historical_length, 'hour').valueOf();
+        const expected_historicalTo = realMoment(todayMockValue).utc().format();
+        const expected_historicalFrom = realMoment(todayMockValue).utc().subtract(historical_length, 'hour').format();
         const attrListMockString = 'attr1, attr2';
         const attrListMock = ['attr1', 'attr2'];
         const historical_serverMock = 'https://quantumpleap.example.com';

@@ -1,3 +1,9 @@
+## 0.2.2 (2021-06-30)
+
+- Updated the code to use IS8601 formated dates when calling Quantum Leap API.
+    QL 0.8.1+ does not support timestamps values.
+
+
 ## 0.2.1 (2021-04-09)
 
 - Fix problem mixing attribute values. See #17
