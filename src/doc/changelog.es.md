@@ -1,7 +1,15 @@
+## 0.2.2 (2021-06-30)
+
+- Modificado el código para usar fechas formateadas en formato ISO 8601 al
+    llamar a las APIs de Quantum Leap. QL 0.8.1 en adelante, no soportan usar
+    timestamps.
+
+
 ## 0.2.1 (2021-04-09)
 
 - Arreglado un problema por el que se mezclaban los valores de los atributos.
     Ver #17.
+
 
 ## 0.2.0 (2021-01-29)
 

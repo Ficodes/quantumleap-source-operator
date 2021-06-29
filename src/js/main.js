@@ -156,14 +156,14 @@
 
             if (from === "" && to === "") {
                 const toDate = moment().utc();
-                to = toDate.valueOf();
-                from = toDate.subtract(numberOfHours4History, 'hours').valueOf();
+                to = toDate.format();
+                from = toDate.subtract(numberOfHours4History, 'hours').format();
             } else {
                 if (from !== null && moment(from).isValid()) {
-                    from = moment(from).valueOf();
+                    from = moment(from).format();
                 }
                 if (to !== null && moment(to).isValid()) {
-                    to = moment(to).valueOf();
+                    to = moment(to).format();
                 }
             }
         }
