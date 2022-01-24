@@ -172,7 +172,6 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-clean');
     grunt.loadNpmTasks('grunt-strip-code');
-    grunt.loadNpmTasks('grunt-text-replace');
 
     grunt.registerTask('test', [
         'eslint',
